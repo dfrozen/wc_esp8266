@@ -33,35 +33,68 @@ ESP8266HTTPUpdateServer httpUpdater;
 //////////////////////////////////////////////////////////////////////////////////////////////
 
 #define DEBUG            1   // Выдача отладочной информации в COM-порт
-#define RESET            1   // Установка первоначального "0"
-
+boolean SET = false; 
 //////////////////////////////////////////////////////////////////////////////////////////////
 // Пины для подключения устройств
 #define BUTTON_PIN       16    //Пин с конпкой
 #define HOT_COUNTER_PIN  14    //Пин счетчика горячей воды
-#define COLD_COUNTER_PIN 12    //Пин счетчика холодной воды
+#define COLD_COUNTER_PIN 12    //Пин счетчика холодной водыводы
 #define COUNTERS 2            //Колличество счетчиков в системе
 //////////////////////////////////////////////////////////////////////////////////////////////
 
 
-unsigned int CounterHighBase[COUNTERS] = {77777,88888};     // Если значение отлично от нуля - то пишем его в качестве базового     
-unsigned int CounterLowBase[COUNTERS]  = {333,666};     // Если значение отлично от нуля - то пишем его в качестве базового
+unsigned int CounterHighBase[COUNTERS] = {00000, 00000};     // Если значение отлично от нуля - то пишем его в качестве базового     
+unsigned int CounterLowBase[COUNTERS]  = {400,700};     // Если значение отлично от нуля - то пишем его в качестве базового
 int counterReadDelay  = 0;                          // Текущая задержка считывания счетчика 
                                                     // (нужна для уверенной отработки переключения счетчика) 
 int CounterPin[COUNTERS]         = {COLD_COUNTER_PIN, HOT_COUNTER_PIN};  // Пины 
-int CounterHighAddress[COUNTERS] = {0x30, 0x3a};     //Адреса EEPROM для младшего слова (кубометры)  5 байта
-int CounterLowAddress[COUNTERS]  = {0x38, 0x43};     //Адреса EEPROM для младшего слова (литры) 2 байта
+int CounterHighAddress[COUNTERS] = {0x10, 0x1a};     //Адреса EEPROM для младшего слова (кубометры)  5 байта
+int CounterLowAddress[COUNTERS]  = {0x28, 0x23};     //Адреса EEPROM для младшего слова (литры) 2 байта
 char *CounterName[COUNTERS]      = {"Cold: ", "Hot:  "};                 // Названия счетчиков для вывода на экран 
 Bounce CounterBouncer[COUNTERS]  = {};               // Формируем для счетчиков Bounce объекты
 //////////////////////////////////////////////////////////////////////////////////////////////
-
-void callback(char* topic, byte* payload, unsigned int length) {
-  // handle message arrived
-}
+void callback(char* topic, byte* payload, unsigned int length);
 
 WiFiClient wifiClient;
 PubSubClient client(MQTT_SERVER, 1883, callback, wifiClient);
 
+void callback(char* topic, byte* payload, unsigned int length) {
+  // handle message arrived
+  unsigned  int HighBase,LowBase;
+  String dataStr, topicStr,topicShort;
+
+  for (int i=0 ; i<length; i++)dataStr += (char)payload[i];
+  HighBase =dataStr.substring(0,dataStr.lastIndexOf(',')).toInt();
+  LowBase = dataStr.substring(dataStr.lastIndexOf(',')+1).toInt();
+  topicStr = String (topic);
+  topicShort = topicStr.substring(topicStr.lastIndexOf('/')+1);
+
+if (topicShort == "reset" && HighBase == 1 ){
+  Serial.println("Reset true");
+  SET = true;
+  } 
+if (topicShort == "Cold: " & SET) {
+         Serial.println("Message write Cold:");
+        EEPROM_write_Int(CounterLowAddress[0], LowBase);
+        EEPROM_write_Int(CounterHighAddress[0],HighBase);
+        countersInit();
+        client.publish("home/sensors/watercount/status","set Cold: new data");
+        client.publish("home/sensors/watercount/correct/reset","0");
+         Serial.println("Reset false");
+          SET = false;
+  }
+  if (topicShort == "Hot:  " & SET) {
+    Serial.println("Message write Hot:");
+        EEPROM_write_Int(CounterLowAddress[1], LowBase);
+        EEPROM_write_Int(CounterHighAddress[1], HighBase);
+        countersInit();
+        client.publish("home/sensors/watercount/status","set Hot: new data");
+        client.publish("home/sensors/watercount/correct/reset","0");
+        Serial.println("Reset false");
+        SET = false;
+  }
+
+}
 
 #define BUFFER_SIZE 100
 
@@ -102,72 +135,83 @@ void re_connect() {
       #endif
       lcd.clear();  
       lcd.print("MQTT connection...");
-  
-      if (client.connect("esp8266",mqtt_user,mqtt_pass)) {
+      String clientName;
+      clientName += "esp8266-";
+      uint8_t mac[6];
+      WiFi.macAddress(mac);
+      clientName += macToStr(mac);
+      
+      if (client.connect(clientName.c_str(),mqtt_user,mqtt_pass)) {
         #if DEBUG
         Serial.println("\tMQTT Connected");
         #endif
         lcd.clear();  
         lcd.print("MQTT Connected");
+        //client.set_callback(callback);
+        client.subscribe("home/sensors/watercount/correct/reset");
+        client.subscribe("home/sensors/watercount/correct/Cold: ");
+        client.subscribe("home/sensors/watercount/correct/Hot:  ");
+        client.publish ("home/sensors/watercount/status","alive");
       }
       //otherwise print failed for debugging
       else { Serial.println("\tFailed."); abort(); }
     }
   }
-  lcd.clear();        
-    for (int i=0; i<COUNTERS; i++)                  // Выводим на экран начальные значения    
-    {
-
-        printPos(0,0,CounterName[0]);
-        printPos(0,1,CounterName[1]);
-        printHigh(7,i,CounterHighBase[i]);
-        printPos(12,i,",");
-        printLow(13,i,CounterLowBase[i]);
-    }
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
  void EEPROM_write_Int(int addr,unsigned int data)
   {  
-    int _size = sizeof(data);
-    int i;
     byte buf[4];
       (int&)buf=data;
-          for (i=0; i<_size; i++)EEPROM.write(addr+i,buf[i]);
-}
+          for (int i=0; i<sizeof(data); i++){
+            EEPROM.write(addr+i,buf[i]);
+             EEPROM.commit();
+          }
+  }
  ///////////////////////////////////////////////////////////////////////////////////////////////////
  unsigned int EEPROM_read_Int(int addr)
-{
+  {
     byte buf[4];
-    for(byte i = 0; i < 4; i++)buf[i] = EEPROM.read(addr+i);
+    for(int i = 0; i < 4; i++)buf[i] = EEPROM.read(addr+i);
     int &num = (int&)buf;
     return num;
   }
-
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////
+void Publish (char *Dataname, unsigned int HighData,unsigned int LowData ) {
+   String MQTT_node;
+   MQTT_node += "home/sensors/watercount/";  MQTT_node += Dataname; 
+   String MQTT_data;
+   MQTT_data +=String(HighData).c_str(); MQTT_data +=","; MQTT_data +=String(LowData).c_str();
+      
+   client.publish(String(MQTT_node).c_str(),String(MQTT_data).c_str());
+  }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void countersInit()
 {
- 
+ lcd.clear(); 
   for (int i=0; i<COUNTERS; i++)
   {
-    #if RESET // Установка значений по умолчанию - пишем его в EEPROM
-      EEPROM_write_Int(CounterLowAddress[i], CounterLowBase[i]);
-      EEPROM_write_Int(CounterHighAddress[i], CounterHighBase[i]);
-    #endif  
+
    CounterHighBase[i] = EEPROM_read_Int(CounterHighAddress[i]); // Читаем начальные значения из EEPROM
-   client.publish("home/sensors/watercount/CounterHighBase",String(CounterHighBase[i]).c_str());
    CounterLowBase[i]  = EEPROM_read_Int(CounterLowAddress[i]);  // Читаем начальные значения из EEPROM
-   client.publish("home/sensors/watercount/CounterLowBase",String(CounterLowBase[i]).c_str());
+
+  Publish (CounterName[i], CounterHighBase[i],CounterLowBase[i] );
+  
+   
     #if DEBUG
       Serial.print("Read form EEPROM "); Serial.print(i,DEC ); Serial.print(" counter. Name "); Serial.println(CounterName[i]); 
       Serial.print(CounterHighAddress[i] ,HEX); Serial.print(" => "); Serial.println(CounterHighBase[i],DEC);
       Serial.print(CounterLowAddress[i]  ,HEX); Serial.print(" => "); Serial.println(CounterLowBase[i] ,DEC);
     #endif
+        printPos(0,0,CounterName[0]);
+        printPos(0,1,CounterName[1]);
+        printHigh(7,i,CounterHighBase[i]);
+        printPos(12,i,",");
+        printLow(13,i,CounterLowBase[i]);
   }
 }
 
-
-//////////////////////////////////////////////////////////////////////////////////////////////
-// Обрабатываются счетчики
+//////////////////////////////////////////////////////////////////////////////////////////////Обрабатываются счетчики
 void readCounter()
 {
   if (counterReadDelay >= 100) // Если подошло время обработки
@@ -183,11 +227,12 @@ void readCounter()
             CounterLowBase[i]+=10;  
             printLow(13,i,CounterLowBase[i]);        
             EEPROM_write_Int(CounterLowAddress[i],CounterLowBase[i]);
+            Publish (CounterName[i], CounterHighBase[i],CounterLowBase[i] );
             #if DEBUG
-               Serial.print("Write to EEPROM "); Serial.print(i,DEC ); Serial.println(" counter. Name "); Serial.println(CounterName[i]); 
+               Serial.print("Write to EEPROM "); Serial.print(i,DEC ); Serial.print(" counter. Name "); Serial.println(CounterName[i]); 
                Serial.print(CounterHighAddress[i] ,HEX); Serial.print(" => "); Serial.println(CounterHighBase[i]);
                Serial.print(CounterLowAddress[i] ,HEX); Serial.print(" => "); Serial.println(CounterLowBase[i] );
-          #endif
+           #endif
           }
           else  // иначе, если произошел переход - обнуляем счетчик литров и увеличиваем счетчик кубометров на 1
           {
@@ -197,8 +242,9 @@ void readCounter()
               printLow(13,i ,CounterLowBase[i] );         
             EEPROM_write_Int( CounterLowAddress[i],  CounterLowBase[i] );
             EEPROM_write_Int( CounterHighAddress[i], CounterHighBase[i]);
+            Publish (CounterName[i], CounterHighBase[i],CounterLowBase[i] );
             #if DEBUG
-               Serial.print("Write to EEPROM "); Serial.print(i,DEC ); Serial.println(" counter. Name "); Serial.println( CounterName[i] ); 
+               Serial.print("Write to EEPROM "); Serial.print(i,DEC ); Serial.print(" counter. Name "); Serial.println( CounterName[i] ); 
                Serial.print(CounterHighAddress[i] ,HEX); Serial.print(" => "); Serial.println(CounterHighBase[i]);
                Serial.print(CounterLowAddress[i] ,HEX); Serial.print(" => "); Serial.println(CounterLowBase[i] );
             #endif
@@ -209,8 +255,9 @@ void readCounter()
   else //Если время обработки еще не истекло
   {    
     counterReadDelay++;
+    
    
-    //println(counterReadDelay); 
+   // Serial.println(counterReadDelay); 
   } 
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -241,18 +288,17 @@ void readCounter()
     sprintf(str1,"%0.3u",val);
     lcd.print(str1);
   }
-//////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////
 void setup() {
   // put your setup code here, to run once:
-  delay(100);
+  delay(10);
   #if DEBUG
     Serial.begin(9600);
     Serial.println( "Debug is ON...");
     Serial.println( "------- FLAGS ------");
   #endif
     
-    EEPROM.begin(512);
+    EEPROM.begin(64);
 
  ////////////////////////////////////////////////////////////////////////////////////////////////////////
    for (int i=0; i<COUNTERS; i++)
@@ -276,8 +322,8 @@ void setup() {
   //start wifi subsystem 
   WiFi.begin(ssid, password); //attempt to connect to the WIFI network and then connect to the MQTT server
   re_connect();
-   countersInit();                                   // Инициализация начальных показаний счетчиков  
-  client.publish("home/sensors/watercount/alive","true");
+  countersInit();                                   // Инициализация начальных показаний счетчиков  
+  //client.publish("home/sensors/watercount/alive","true");
   MDNS.begin(host);
   httpUpdater.setup(&httpServer, update_path, update_username, update_password);
   httpServer.begin();
@@ -291,13 +337,12 @@ void loop() {
  //reconnect if connection is lost
   if (!client.connected() && WiFi.status() == 3) {
       re_connect();
-       countersInit();                                   // Инициализация начальных показаний счетчиков  
-
+      countersInit();                                   // Инициализация начальных показаний счетчиков  
       }
   //maintain MQTT connection
    delay(200);  
   httpServer.handleClient();
-       readCounter();   // Читаем и обрабатываем значения счетчиков                                
+    readCounter();   // Читаем и обрабатываем значения счетчиков                                
     wdt_reset();
-  client.loop();
+    client.loop();
 }
