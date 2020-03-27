@@ -12,9 +12,9 @@ Have a reset mode to default measurements  Based on ESP8266 and Arduino IDE
 
 # HOW USE
 
-##Change if you need for default config
+## Change if you need for default config
 
-#define DEBUG            1   //  Sent Debug information to COM-port
+#### #define DEBUG            1   //  Sent Debug information to COM-port
 
 
 #### #define BUTTON_PIN       16    //Pin for feature use
