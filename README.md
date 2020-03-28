@@ -6,46 +6,69 @@ ESP8266, LiquidCrystal_I2C water meter monitor with MQTT
 ## warning
 garanted work with Bounce 2 ver 2.2.0
 
-## ver 1.0.1
 The monitor for the watermeter, saves the measurements in EEPROM.
 Have a reset mode to default measurements  Based on ESP8266 and Arduino IDE
+## ver 1.0.2 - 2020.03.28 - BugFix, Вынос настроек в Settings.h (GitHub)
+
+## ver 1.0.1 - 2020.03.25 - Первая версия кода на базе ESP8266
+
 
 # HOW USE
 
 ## Change if you need for default config
 
-#### #define DEBUG            1   //  Sent Debug information to COM-port
+//Hostname of ESP8266
+#define WIFI_HOSTNAME "WaterMeter"
 
+//Wifi SSID to connect to Leave empty to disable Wi-Fi.
+#define WIFI_SSID "Bestoloch"
 
-#### #define BUTTON_PIN       16    //Pin for feature use
-#### #define HOT_COUNTER_PIN  14    //Hot water input PIN
-#### #define COLD_COUNTER_PIN 12    //Cold Water input PIN
-#### #define COUNTERS 2             //Do not change (set to feature use)
-Setup Wi-Fi Connection
-const char* ssid = "SSID_Name";
-const char* password = "SSID_PASS";
-//////////////////////////////////////////////////////////////////////////////////////////////////
-#### #define MQTT_SERVER "10.10.100.14"  // Name or IP of MQTT Broker
-#### #define mqtt_port  1883             // Port of MQTT Broker
-const char* mqtt_user="orangepi";   // User name for MQTT Broker
-const char* mqtt_pass="orangepi";   // User password for MQTT Broker
+//Passowrd for WIFI
+#define WIFI_PASSWORD "511794sinikon"
 
-if you need  you did change name of MQTT topic
-home/sensors/watercount/correct/reset // Set default flag
-home/sensors/watercount/correct/Cold: // correction Cold Water
-home/sensors/watercount/correct/Hot: // correction Hot Water
-home/sensors/watercount/status       // Status of watermeter monitor
-home/sensors/watercount/Cold:        // measurements Cold Water
-home/sensors/watercount/Hot:         // measurements Hot Water
+//set the mqqt host name or ip address to your mqqt host. Leave empty to disable mqtt.
+#define MQTT_SERVER "10.10.100.14"
+//mqtt port for the above host
+#define MQTT_PORT  1883
+//if authentication is enabled for mqtt, set the username below. Leave empty to disable authentication
+#define MQTT_USER "orangepi"
+#define MQTT_PASS "orangepi"
+
+// Publish branch of topic to MQTT
+#define PUB_TOPIC  "/home/watermeter/"
+// Subscribe  branch of topic for Callback
+#define SUB_TOPIC  "/home/watermeter/correct/#"
+
+/////////////////////////webudate server//////////////////////////////////////////
+
+#define update_host  "WaterMeter"
+
+#define update_path  "/firmware"
+
+#define update_username  "admin"
+
+#define update_password  "admin"
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+#define DEBUG            true   // Выдача отладочной информации в COM-порт
+#define BUFFER_SIZE 100
+
+// Пины для подключения устройств
+#define BUTTON_PIN       16    //Пин с кнопкой
+#define HOT_COUNTER_PIN  14    //Пин счетчика горячей воды
+#define COLD_COUNTER_PIN 12    //Пин счетчика холодной водыводы
+#define COUNTERS 2            //Колличество счетчиков в системе
+#define STEP 10 // Цена импульса - 1 на 10 литров, или 1 на литр
 
 ## Set  default or correction
  if You need correct data of measurements, to do:
  for sample you need correct Cold water measurements
- 1. synchronize MQTT Topic "home/sensors/watercount/correct/Hot:" to current measurements home/sensors/watercount/Hot:  (if no sync maybe rewrite )
- 2. Set MQTT Topic "home/sensors/watercount/correct/reset" = 1
- 3. Set MQTT Topic "home/sensors/watercount/correct/Cold:"  correct data
+ 1. synchronize MQTT Topic "/watercount/correct/Hot:" to current measurements /watercount/Hot:  (if no sync maybe rewrite )
+ 2. Set MQTT Topic "/watercount/correct/reset" = 1
+ 3. Set MQTT Topic "/watercount/correct/Cold:"  correct data
 
-If new data saved to EEPROM auto reset "home/sensors/watercount/correct/reset" = 0 and home/sensors/watercount/status "set Cold: new data"
+If new data saved to EEPROM auto reset "/watercount/correct/reset" = 0 and /watercount/status "set Cold: new data"
 
 ## License
 MIT License
