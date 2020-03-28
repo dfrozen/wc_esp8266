@@ -8,9 +8,9 @@ garanted work with Bounce 2 ver 2.2.0
 
 The monitor for the watermeter, saves the measurements in EEPROM.
 Have a reset mode to default measurements  Based on ESP8266 and Arduino IDE
-## ver 1.0.2 - 2020.03.28 - BugFix, Вынос настроек в Settings.h (GitHub)
+### ver 1.0.2 - 2020.03.28 - BugFix, Вынос настроек в Settings.h (GitHub)
 
-## ver 1.0.1 - 2020.03.25 - Первая версия кода на базе ESP8266
+### ver 1.0.1 - 2020.03.25 - Первая версия кода на базе ESP8266
 
 
 # HOW USE
