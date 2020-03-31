@@ -1,15 +1,15 @@
 #include <EEPROM.h>
-#include <ESP8266WiFi.h>
-#include <WiFiClient.h>
-#include <ESP8266WebServer.h>
-#include <ESP8266mDNS.h>
-#include <ESP8266HTTPUpdateServer.h>
-#include <PubSubClient.h>             // MQTT PubSubClient
+
 #include <Wire.h>                     // I2C
 #include <LiquidCrystal_I2C.h>        // I2C LCD
 
 #include <Bounce2.h>                  // Для обработки замыкания линий со счетчиков
 #include "Settings.h"
+#include "Connection.h"
+#include "HTTP_Server.h"
+#include "MQTT_Connection.h"
+
+
 #define LCD_COL           16                      // Разрешение экрана - колонки
 #define LCD_ROW           2                       // Разрешение экрана - строки
 
@@ -17,10 +17,9 @@ LiquidCrystal_I2C lcd(0x3F,LCD_COL,LCD_ROW);      // Устанавливаем 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-ESP8266WebServer httpServer(80);
-ESP8266HTTPUpdateServer httpUpdater;
 
-boolean SET = false;
+bool hasWIFI = false;
+
 //////////////////////////////////////////////////////////////////////////////////////////////
 
 unsigned int CounterHighBase[COUNTERS] = {00000, 00000};     // Если значение отлично от нуля - то пишем его в качестве базового
@@ -34,147 +33,11 @@ char *CounterName[COUNTERS]      = {"Cold: ", "Hot:  "};                 // На
 Bounce CounterBouncer[COUNTERS]  = {};               // Формируем для счетчиков Bounce объекты
 //////////////////////////////////////////////////////////////////////////////////////////////
 
-void callback(char* topic, byte* payload, unsigned int length);
-
-WiFiClient wifiClient;
-PubSubClient client(MQTT_SERVER, 1883, callback, wifiClient);
-
-void callback(char* topic, byte* payload, unsigned int length) {
-
-  unsigned  int HighBase,LowBase;
-  String dataStr, topicStr,topicShort;
-
-  for (int i=0 ; i<length; i++)dataStr += (char)payload[i];
-    HighBase =dataStr.substring(0,dataStr.lastIndexOf(',')).toInt();
-    LowBase = dataStr.substring(dataStr.lastIndexOf(',')+1).toInt();
-      topicStr = String (topic); // Конвертируем Топик в строку
-      topicShort = topicStr.substring(topicStr.lastIndexOf('/')+1);// Берем конец строки (сам топик без ветки)
-
-if (topicShort == "reset" && HighBase == 1 ){
-  #if DEBUG
-  Serial.println("SET Enabled");
-  #endif
-  client.publish((PUB_TOPIC "status"),"SET Enabled",true);
-  SET = true;
-  }
-if (topicShort == "Cold: " & SET) {
-    #if DEBUG
-         Serial.println("Message write Cold:");
-    #endif
-        EEPROM_write_Int(CounterLowAddress[0], LowBase);
-        EEPROM_write_Int(CounterHighAddress[0], HighBase);
-        countersInit();
-        client.publish((PUB_TOPIC "status"),"set Cold: new data",true);
-        client.publish((PUB_TOPIC "correct/reset"),"0",true);
-    #if DEBUG
-         Serial.println("SET Disabled");
-    #endif
-          SET = false;
-  }
-  if (topicShort == "Hot:  " & SET) {
-        #if DEBUG
-    Serial.println("Message write Hot:");
- #endif
-        EEPROM_write_Int(CounterLowAddress[1], LowBase);
-        EEPROM_write_Int(CounterHighAddress[1], HighBase);
-        countersInit();
-        client.publish((PUB_TOPIC "status"),"set Hot: new data",true);
-        client.publish((PUB_TOPIC "correct/reset"),"0",true);
-      #if DEBUG
-        Serial.println("SET Disabled");
-      #endif
-        SET = false;
-  }
-
-}
-
-String mac2Str(const uint8_t* mac){
-  String result;
-  for (int i = 0; i < 6; ++i) {
-    result += String(mac[i], 16);}
-  return result;
-}
-String ip2Str(IPAddress ip){
-  String s="";
-  for (int i=0; i<4; i++) {
-    s += i  ? "." + String(ip[i]) : String(ip[i]);
-  }
-  return s;
-}
-
-void re_connect() {
-
-  //attempt to connect to the wifi if connection is lost
-  if(WiFi.status() != WL_CONNECTED){
-       #if DEBUG
-          Serial.print("\tConnecting to ");
-       #endif
-   lcd.clear();
-   lcd.print("Wi-Fi Connecting");
-
-      #if DEBUG
-        Serial.print(WIFI_SSID);
-        Serial.println("...");
-       #endif
-
-    WiFi.begin(WIFI_SSID, WIFI_PASSWORD);}
-    else {
-      delay(5000);
-    }
+MQTTPublisher mqqtPublisher(DEBUG);
+WifiConnector wifiConnector(DEBUG);
+HTTP_Server http_server(DEBUG);
 
 
-  //make sure we are connected to WIFI before attemping to reconnect to MQTT
-  if(WiFi.status() == WL_CONNECTED){
-  // Loop until we're reconnected to the MQTT server
-    while (!client.connected()) {
-      #if DEBUG
-      Serial.println("\tAttempting MQTT connection...");
-      #endif
-      lcd.clear();
-      lcd.print("MQTT connection...");
-      String clientName;
-      clientName +=  WIFI_HOSTNAME;
-      clientName += "-";
-      uint8_t mac[6];
-     
-      WiFi.macAddress(mac);
-      IPAddress local_ip = WiFi.localIP();
-      long rssi= WiFi.RSSI();
-      #if DEBUG
-
-         Serial.print("IP Address: ");
-         Serial.println(local_ip);
-         Serial.print("signal strength (RSSI):");
-         Serial.print(rssi);
-         Serial.println(" dBm");
-      #endif
-      String ip = ip2Str(local_ip);
-      clientName += mac2Str(mac);
-
-      if (client.connect(clientName.c_str(),MQTT_USER,MQTT_PASS)) {
-        #if DEBUG
-        Serial.println("\tMQTT Connected");
-        #endif
-        lcd.clear();
-        lcd.print("MQTT Connected");
-        client.subscribe(SUB_TOPIC);
-        //client.subscribe((PUB_TOPIC "correct/reset"));
-        //client.subscribe((PUB_TOPIC "correct/Cold: "));
-        //client.subscribe((PUB_TOPIC "correct/Hot:  "));
-        client.publish ((PUB_TOPIC "client_RSSI"),String(rssi).c_str(), true);
-        client.publish ((PUB_TOPIC "client_IP"),ip.c_str() , true);
-        client.publish ((PUB_TOPIC "client_mac"),mac2Str(mac).c_str(), true);
-        client.publish ((PUB_TOPIC "client"), WIFI_HOSTNAME, true);
-        client.publish ((PUB_TOPIC "status"), "alive", true);
-        client.publish ((PUB_TOPIC "firmware"),FIRMWARE_VERSION,true);
-        client.publish ((PUB_TOPIC"step"),String(STEP).c_str(),true);
-      }
-      //otherwise print failed for debugging
-      else { Serial.println("\tFailed."); abort(); }
-    }
-  }
-}
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////
  void EEPROM_write_Int(int addr,unsigned int data)
   {
     byte buf[4];
@@ -193,22 +56,18 @@ void re_connect() {
     return num;
   }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void Publish (char *Dataname, unsigned int HighData,unsigned int LowData ) {
+void Publish (char *Topic, unsigned int HighData,unsigned int LowData ) {
    String MQTT_node; 
   // char strh[5];
    char str1[3];
-   MQTT_node += PUB_TOPIC;
-   MQTT_node += Dataname;
    String MQTT_data;
-  // sprintf(strh,"%0.5u",HighData);
    sprintf(str1,"%0.3u",LowData);
    #if DEBUG
    Serial.print("\t LowData.");Serial.println(str1);
    Serial.print("\t HighData.");Serial.println(HighData);
    #endif
    MQTT_data +=String(HighData).c_str(); MQTT_data +=","; MQTT_data +=String(str1).c_str();
-
-   client.publish(String(MQTT_node).c_str(),String(MQTT_data).c_str(),true);
+    mqqtPublisher.send_mqtt(PUB_TOPIC,Topic,MQTT_data);
   }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void countersInit()
@@ -343,29 +202,32 @@ void setup() {
 
  //////////////////////////////////////////////////////////////////////////////////////////////////////////
   //start wifi subsystem
-  WiFi.hostname(WIFI_HOSTNAME);
-  WiFi.begin(WIFI_SSID, WIFI_PASSWORD); //attempt to connect to the WIFI network and then connect to the MQTT server
-  re_connect();
-  countersInit();                                   // Инициализация начальных показаний счетчиков
-  MDNS.begin(update_host);
-  httpUpdater.setup(&httpServer, update_path, update_username, update_password);
-  httpServer.begin();
-  MDNS.addService("http", "tcp", 80);
-  Serial.printf("HTTP Update Server ready! Open http://%s.local%s in your browser and login with username '%s' and password '%s'\n", update_host, update_path, update_username, update_password);
+  
+  wifiConnector.start();
 
+  http_server.start();
+   // Setup MQTT
+  mqqtPublisher.start();
+  countersInit();                                   // Инициализация начальных показаний счетчиков
+ 
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
- //reconnect if connection is lost
-  if (!client.connected() && WiFi.status() == 3) {
-      re_connect();
-      countersInit();                                   // Инициализация начальных показаний счетчиков
-      }
-  //maintain MQTT connection
-   delay(200);
-    httpServer.handleClient();
+  wifiConnector.handle();
+  yield();
+   http_server.handle();
+   yield();
+     mqqtPublisher.handle();
+  yield();
+  delay(200);
     readCounter();   // Читаем и обрабатываем значения счетчиков
+      for (int i=0; i<COUNTERS; i++)
+  {
+            printPos(0,0,CounterName[0]);
+        printPos(0,1,CounterName[1]);
+        printHigh(7,i,CounterHighBase[i]);
+        printPos(12,i,",");
+        printLow(13,i,CounterLowBase[i]);
+    }
     wdt_reset();
-    client.loop();
-}
+ }
