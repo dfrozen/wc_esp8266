@@ -1,16 +1,16 @@
-#define FIRMWARE_VERSION "1.0.2"
+#define FIRMWARE_VERSION "1.0.3"
 
 /*
 Версии прошивки для ESP
+1.0.3 - 2020.03.31 - BugFix, Вынос WiFi, MQTT, Update Server в внешние процедуры. 
 
-
-1.0.2 - 2020.03.28 - BugFix, Вынос настроек в Settings.h (GitHub)
+1.0.2 - 2020.03.28 - BugFix, Вынос настроек в Settings.h 
 
 1.0.1 - 2020.03.25 - Первая версия кода на базе ESP8266
 */
-
+                      
 //Hostname of ESP8266
-#define WIFI_HOSTNAME "WaterMeter"
+#define WIFI_HOSTNAME "develop"
 
 //Wifi SSID to connect to Leave empty to disable Wi-Fi.
 #define WIFI_SSID "Bestoloch"
@@ -27,13 +27,13 @@
 #define MQTT_PASS "orangepi"
 
 // Publish branch of topic`s to MQTT
-#define PUB_TOPIC  "/home/watermeter/"
+#define PUB_TOPIC  "/develop/watermeter/"
 // Subscribe  branch of topic`s for Callback
-#define SUB_TOPIC  "/home/watermeter/correct/#"
+#define SUB_TOPIC  "/develop/watermeter/correct/#"
 
 /////////////////////////webudate server//////////////////////////////////////////
 
-#define update_host  "WaterMeter"
+#define update_host  "esp8266-webupdate"
 
 #define update_path  "/firmware"
 
