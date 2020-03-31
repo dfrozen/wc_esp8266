@@ -4,7 +4,7 @@
 #include "MQTT_Connection.h"
 #include "Settings.h"
 
-
+bool RESET = false;
 void callback(char* topic, byte* payload, unsigned int length);
 
 WiFiClient wifiClient;
@@ -80,7 +80,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
 
   unsigned  int HighBase,LowBase;
   String dataStr, topicStr,topicShort;
-  bool SET;
+
   for (int i=0 ; i<length; i++)dataStr += (char)payload[i];
     HighBase =dataStr.substring(0,dataStr.lastIndexOf(',')).toInt();
     LowBase = dataStr.substring(dataStr.lastIndexOf(',')+1).toInt();
@@ -90,25 +90,25 @@ void callback(char* topic, byte* payload, unsigned int length) {
 if (topicShort == "reset" && HighBase == 1 ){
 
   client.publish((PUB_TOPIC "status"),"SET Enabled",true);
-  SET = true;
+  RESET = true;
   }
-if (topicShort == "Cold: " & SET) {
+if (topicShort == "Cold: " & RESET) {
 
         EEPROM_write_Int(CounterLowAddress[0], LowBase);
         EEPROM_write_Int(CounterHighAddress[0], HighBase);
         client.publish((PUB_TOPIC "status"),"set Cold: new data",true);
         client.publish((PUB_TOPIC "correct/reset"),"0",true);
         countersInit();
-        SET = false;
+        RESET = false;
   }
-  if (topicShort == "Hot:  " & SET) {
+  if (topicShort == "Hot:  " & RESET) {
 
         EEPROM_write_Int(CounterLowAddress[1], LowBase);
         EEPROM_write_Int(CounterHighAddress[1], HighBase);
         client.publish((PUB_TOPIC "status"),"set Hot: new data",true);
         client.publish((PUB_TOPIC "correct/reset"),"0",true);
         countersInit();
-        SET = false;
+        RESET = false;
   }
 
 }
