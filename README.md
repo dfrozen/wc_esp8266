@@ -8,6 +8,7 @@ Have a reset mode to default measurements  Based on ESP8266 and Arduino IDE
 ## warning
 garanted work with Bounce 2 ver 2.2.0
 
+
 ### ver 1.0.3 - 2020.03.31 - BugFix, Вынос WiFi, MQTT, Update Server во внешние процедуры.
 
 ### ver 1.0.2 - 2020.03.28 - BugFix, Вынос настроек в Settings.h (GitHub)
