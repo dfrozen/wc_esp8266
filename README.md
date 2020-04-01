@@ -3,6 +3,7 @@
 
 ESP8266, LiquidCrystal_I2C watermeter monitor with MQTT
 ![](docs/img/IMG_1937.jpg)
+
 Здесь лежит скетч для Arduino IDE, с помощью которого из ESP8266 и двухстрокового LCD 16x2 можно сделать монитор для счетчиков воды.
 Возможности:
 1. Установка первоначальных значений через MQTT
@@ -84,6 +85,7 @@ ESP8266, LiquidCrystal_I2C watermeter monitor with MQTT
 ![](docs/img/mqtt.png)
 
 ## Вариант использования
+Представление данных в Apple Homekit
 ![](docs/img/IMG_1945.PNG)
 
 ## License
