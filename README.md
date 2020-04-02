@@ -87,6 +87,13 @@ ESP8266, LiquidCrystal_I2C watermeter monitor with MQTT
 ## Вариант использования
 Представление данных в Apple Homekit
 ![](docs/img/IMG_1945.PNG)
+## История
+Началось все с статьи https://pikabu.ru/story/podklyuchaem_arduino_k_schetchikam_vodyi_4258720
+Потом была экспериментальная реализация https://github.com/dfrozen/watercounter
+## Похожие проекты
+При реализации были досканально изучены проекты 
+https://github.com/dontsovcmc/waterius
+https://github.com/bram2202/mqtt-watermeter
 
 ## License
 MIT License
