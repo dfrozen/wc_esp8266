@@ -1,14 +1,16 @@
-#define FIRMWARE_VERSION "1.0.3"
+#define FIRMWARE_VERSION "1.0.4"
 
 /*
 Версии прошивки для ESP
-1.0.3 - 2020.03.31 - BugFix, Вынос WiFi, MQTT, Update Server в внешние процедуры. 
+1.0.4 - 2020.04.17 - Оптимизация задержки в процедурах.
 
-1.0.2 - 2020.03.28 - BugFix, Вынос настроек в Settings.h 
+1.0.3 - 2020.03.31 - BugFix, Вынос WiFi, MQTT, Update Server в внешние процедуры.
+
+1.0.2 - 2020.03.28 - BugFix, Вынос настроек в Settings.h
 
 1.0.1 - 2020.03.25 - Первая версия кода на базе ESP8266
 */
-                      
+
 //Hostname of ESP8266
 #define WIFI_HOSTNAME "develop"
 
@@ -33,7 +35,7 @@
 
 /////////////////////////webudate server//////////////////////////////////////////
 
-#define update_host  "esp8266-webupdate"
+#define update_host  "watermeter-webupdate"
 
 #define update_path  "/firmware"
 
@@ -47,7 +49,7 @@
 #define BUFFER_SIZE 100
 
 // Пины для подключения устройств
-#define BUTTON_PIN       16    //Пин с кнопкой
+//#define BUTTON_PIN       16    //Пин с кнопкой
 #define HOT_COUNTER_PIN  14    //Пин счетчика горячей воды
 #define COLD_COUNTER_PIN 12    //Пин счетчика холодной водыводы
 #define COUNTERS 2            //Колличество счетчиков в системе

@@ -197,7 +197,7 @@ void setup() {
  //lcd.blink();           // моргание пикселем
  lcd.print("System started"); // че то пишет
 
- pinMode(BUTTON_PIN, INPUT_PULLUP);              // Инициализация кнопки
+ //pinMode(BUTTON_PIN, INPUT_PULLUP);              // Инициализация кнопки
 
 
  //////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -219,15 +219,13 @@ void loop() {
    yield();
      mqqtPublisher.handle();
   yield();
-  delay(200);
     readCounter();   // Читаем и обрабатываем значения счетчиков
       for (int i=0; i<COUNTERS; i++)
   {
-            printPos(0,0,CounterName[0]);
+        printPos(0,0,CounterName[0]);
         printPos(0,1,CounterName[1]);
         printHigh(7,i,CounterHighBase[i]);
         printPos(12,i,",");
         printLow(13,i,CounterLowBase[i]);
     }
-    wdt_reset();
  }

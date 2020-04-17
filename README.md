@@ -12,6 +12,8 @@ ESP8266, LiquidCrystal_I2C watermeter monitor with MQTT
 ### Внимание
 гарантированная работоспособность проверена Bounce 2 ver 2.2.0
 
+### 1.0.4 - 2020.04.17 - Оптимизация задержки в процедурах. 
+
 ### 1.0.3 - 2020.03.31 - BugFix, Вынос WiFi, MQTT, Update Server во внешние процедуры.
 
 ### 1.0.2 - 2020.03.28 - BugFix, Вынос настроек в Settings.h (GitHub)
