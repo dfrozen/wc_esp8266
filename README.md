@@ -2,7 +2,11 @@
 # wc_esp8266
 
 ESP8266, LiquidCrystal_I2C watermeter monitor with MQTT
+
+----------
+
 ![](docs/img/IMG_1937.jpg)
+
 Здесь лежит скетч для Arduino IDE, с помощью которого из ESP8266 и двухстрокового LCD 16x2 можно сделать монитор для счетчиков воды.
 Возможности:
 1. Установка первоначальных значений через MQTT
@@ -11,15 +15,17 @@ ESP8266, LiquidCrystal_I2C watermeter monitor with MQTT
 
 ### Внимание
 гарантированная работоспособность проверена Bounce 2 ver 2.2.0
+----------
+### History
 
-### 1.0.4 - 2020.04.17 - Оптимизация задержки в процедурах. 
+#### 1.0.4 - 2020.04.17 - Оптимизация задержки в процедурах. 
 
-### 1.0.3 - 2020.03.31 - BugFix, Вынос WiFi, MQTT, Update Server во внешние процедуры.
+#### 1.0.3 - 2020.03.31 - BugFix, Вынос WiFi, MQTT, Update Server во внешние процедуры.
 
-### 1.0.2 - 2020.03.28 - BugFix, Вынос настроек в Settings.h (GitHub)
+#### 1.0.2 - 2020.03.28 - BugFix, Вынос настроек в Settings.h (GitHub)
 
-### 1.0.1 - 2020.03.25 - Первая версия кода на базе ESP8266
-
+#### 1.0.1 - 2020.03.25 - Первая версия кода на базе ESP8266
+----------
 
 ### HOW USE
 
@@ -86,7 +92,20 @@ ESP8266, LiquidCrystal_I2C watermeter monitor with MQTT
 ![](docs/img/mqtt.png)
 
 ## Вариант использования
+Представление данных в Apple Homekit
+
 ![](docs/img/IMG_1945.PNG)
+
+## История
+Началось все с статьи https://pikabu.ru/story/podklyuchaem_arduino_k_schetchikam_vodyi_4258720
+
+Потом была экспериментальная реализация https://github.com/dfrozen/watercounter
+
+## Похожие проекты
+При реализации были доскональна изучены проекты:
+ 
+1. https://github.com/dontsovcmc/waterius
+2. https://github.com/bram2202/mqtt-watermeter
 
 ## License
 MIT License
