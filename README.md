@@ -14,6 +14,7 @@ ESP8266, LiquidCrystal_I2C watermeter monitor with MQTT
 3. Сделана поддержка обновления прошивки по Wi-Fi
 
 ### Внимание
+
 гарантированная работоспособность проверена Bounce 2 ver 2.2.0
 ----------
 ### History
